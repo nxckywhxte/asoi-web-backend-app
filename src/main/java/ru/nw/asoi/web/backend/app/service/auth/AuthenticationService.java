@@ -15,6 +15,7 @@ import ru.nw.asoi.web.backend.app.dto.AuthenticationResponse;
 import ru.nw.asoi.web.backend.app.dto.RegisterRequest;
 import ru.nw.asoi.web.backend.app.entity.TokenEntity;
 import ru.nw.asoi.web.backend.app.entity.UserEntity;
+import ru.nw.asoi.web.backend.app.repository.RoleRepository;
 import ru.nw.asoi.web.backend.app.repository.TokenRepository;
 import ru.nw.asoi.web.backend.app.repository.UserRepository;
 import ru.nw.asoi.web.backend.app.utils.enums.TokenType;
@@ -27,26 +28,33 @@ public class AuthenticationService {
 
     private final UserRepository userRepository;
     private final TokenRepository tokenRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
 
 
-    public AuthenticationResponse register(RegisterRequest request) {
+    public AuthenticationResponse register(RegisterRequest request) throws Exception {
+
+        var roles = roleRepository.findAllRolesByName(request.getRole().getName());
+        if (roles.isEmpty()) {
+            throw new Exception("Такой роли нет");
+        }
+
         var user = UserEntity.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .role(roles.get(0))
+                .username(request.getUsername())
                 .build();
-
-
 
         var savedUser = userRepository.save(user);
         var jwtToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
         saveUserToken(savedUser, jwtToken);
         return AuthenticationResponse.builder()
+                .user(user)
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -55,17 +63,18 @@ public class AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        request.getUsername(),
                         request.getPassword()
                 )
         );
-        var user = userRepository.findByEmail(request.getEmail())
+        var user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow();
         var jwtToken = jwtService.generateToken(user);
         var refreshToken = jwtService.generateRefreshToken(user);
         revokeAllUserTokens(user);
         saveUserToken(user, jwtToken);
         return AuthenticationResponse.builder()
+                .user(user)
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
                 .build();
@@ -99,14 +108,14 @@ public class AuthenticationService {
     ) throws IOException {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String refreshToken;
-        final String userEmail;
+        final String username;
         if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
             return;
         }
         refreshToken = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(refreshToken);
-        if (userEmail != null) {
-            var user = this.userRepository.findByEmail(userEmail)
+        username = jwtService.extractUsername(refreshToken);
+        if (username != null) {
+            var user = this.userRepository.findByEmail(username)
                     .orElseThrow();
             if (jwtService.isTokenValid(refreshToken, user)) {
                 var accessToken = jwtService.generateToken(user);

@@ -25,6 +25,4 @@ public class RoleEntity {
     @Column(name = "name", unique = true)
     private String name;
 
-    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL)
-    private Collection<UserEntity> users;
 }

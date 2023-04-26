@@ -9,9 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.UUID;
+import java.util.*;
 
 @Table(name = "users")
 @Entity
@@ -26,21 +24,28 @@ public class UserEntity implements UserDetails {
     @Column(name = "id")
     private UUID id;
 
-    @Column(unique = true)
+    @Column(name = "email", unique = true)
     private String email;
 
+    @Column(name = "password")
     private String password;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToOne()
     @JoinColumn(name = "role_id")
     private RoleEntity role;
+
+    @Column(name = "username", unique = true)
+    private String username;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_profile_id", referencedColumnName = "id", nullable = true)
+    private UserProfile userProfile;
 
 
     //TODO Определить коллекцию доступных прав
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-
-        return Collections.singleton(new SimpleGrantedAuthority(role.getName()));
+        return new ArrayList<GrantedAuthority>(List.of(new SimpleGrantedAuthority(role.getName())));
     }
 
     @Override
@@ -50,7 +55,7 @@ public class UserEntity implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;
+        return username;
     }
 
     @Override

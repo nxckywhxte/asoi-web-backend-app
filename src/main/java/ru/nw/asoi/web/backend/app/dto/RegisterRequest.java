@@ -14,6 +14,6 @@ import ru.nw.asoi.web.backend.app.entity.RoleEntity;
 public class RegisterRequest {
     private String email;
     private String password;
+    private String username;
     private RoleEntity role;
-
 }
