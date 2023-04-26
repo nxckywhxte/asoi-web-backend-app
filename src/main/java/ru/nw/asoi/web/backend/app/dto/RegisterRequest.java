@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.nw.asoi.web.backend.app.entity.RoleEntity;
 
-import java.util.Collection;
 
 @Data
 @Builder
@@ -15,6 +14,6 @@ import java.util.Collection;
 public class RegisterRequest {
     private String email;
     private String password;
-    private Collection<RoleEntity> roles;
+    private RoleEntity role;
 
 }
